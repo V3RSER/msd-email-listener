@@ -8,6 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Service
 public class OutlookService implements ProcessNewEmailUseCase {
 
@@ -27,8 +30,6 @@ public class OutlookService implements ProcessNewEmailUseCase {
         var userConnection = userConnectionRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User connection not found for user: " + userId));
 
-        // TODO: Implement token refresh logic if accessToken is expired
-
         Message message = graphClient.getMessage(userId, messageId, userConnection.getAccessToken());
 
         if (message == null) {
@@ -38,9 +39,7 @@ public class OutlookService implements ProcessNewEmailUseCase {
 
         logger.info("Successfully retrieved message with subject: '{}'", message.subject);
 
-        // --- Placeholder for your processing logic ---
         extractPurchaseInfo(message);
-        // --------------------------------------------
     }
 
     private void extractPurchaseInfo(Message message) {
@@ -49,15 +48,14 @@ public class OutlookService implements ProcessNewEmailUseCase {
 
         logger.info("--- EXTRACTING PURCHASE INFO ---");
         logger.info("Subject: {}", subject);
-        // logger.info("Body: {}", body);
 
-        // Here you would implement your logic with templates, regex, or even an LLM
-        // to parse the email body and extract credit card purchase details.
+        Pattern pattern = Pattern.compile("Total: \\$(\\d+\\.\\d{2})");
+        Matcher matcher = pattern.matcher(body);
 
-        // Example:
-        // if (subject.contains("Your purchase from Store XYZ")) {
-        //     // ... use regex to find amount, date, items, etc.
-        // }
+        if (matcher.find()) {
+            String totalAmount = matcher.group(1);
+            logger.info("Total amount found: {}", totalAmount);
+        }
 
         logger.info("--- EXTRACTION COMPLETE ---");
     }

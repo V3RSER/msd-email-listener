@@ -1,28 +1,25 @@
 package com.example.demo.infrastructure.msgraph;
 
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.OnBehalfOfCredentialBuilder;
+import com.microsoft.graph.GraphServiceClient;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.User;
-import com.microsoft.graph.requests.GraphServiceClient;
-import okhttp3.Request;
 import com.microsoft.kiota.authentication.AzureIdentityAuthenticationProvider;
+import com.microsoft.kiota.http.OkHttpRequestAdapter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class MicrosoftGraphClient {
 
-    @Value("${azure.tenant-id}")
+    @Value("${spring.security.oauth2.client.provider.azure.tenant-id}")
     private String tenantId;
-    @Value("${azure.client-id}")
+    @Value("${spring.security.oauth2.client.registration.azure.client-id}")
     private String clientId;
-    @Value("${azure.client-secret}")
+    @Value("${spring.security.oauth2.client.registration.azure.client-secret}")
     private String clientSecret;
 
-    public GraphServiceClient<Request> getDelegateClient(String accessToken) {
+    public GraphServiceClient getDelegateClient(String accessToken) {
         var credential = new OnBehalfOfCredentialBuilder()
                 .tenantId(tenantId)
                 .clientId(clientId)
@@ -32,22 +29,21 @@ public class MicrosoftGraphClient {
 
         var authProvider = new AzureIdentityAuthenticationProvider(credential, new String[]{"https://graph.microsoft.com/.default"});
 
-        //todo: implementar authProvider
-        return GraphServiceClient.builder()
-                .buildClient();
+        var requestAdapter = new OkHttpRequestAdapter(authProvider);
+        return new GraphServiceClient(requestAdapter);
     }
 
     public Message getMessage(String userId, String messageId, String accessToken) {
-        GraphServiceClient<Request> graphClient = getDelegateClient(accessToken);
+        GraphServiceClient graphClient = getDelegateClient(accessToken);
 
-        return graphClient.users(userId).messages(messageId)
-                .buildRequest()
-                .select("subject,body,from")
-                .get();
+        return graphClient.users().byUserId(userId).messages().byMessageId(messageId)
+                .get(requestConfiguration -> {
+                    requestConfiguration.queryParameters.select = new String[]{"subject", "body", "from"};
+                });
     }
 
     public User getUserFromGraph(String accessToken) {
-        GraphServiceClient<Request> graphClient = getDelegateClient(accessToken);
-        return graphClient.me().buildRequest().get();
+        GraphServiceClient graphClient = getDelegateClient(accessToken);
+        return graphClient.me().get();
     }
 }
