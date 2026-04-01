@@ -1,11 +1,9 @@
 package com.example.demo.infrastructure.msgraph;
 
 import com.azure.identity.OnBehalfOfCredentialBuilder;
-import com.microsoft.graph.GraphServiceClient;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.User;
-import com.microsoft.kiota.authentication.AzureIdentityAuthenticationProvider;
-import com.microsoft.kiota.http.OkHttpRequestAdapter;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,10 +25,7 @@ public class MicrosoftGraphClient {
                 .userAssertion(accessToken)
                 .build();
 
-        var authProvider = new AzureIdentityAuthenticationProvider(credential, new String[]{"https://graph.microsoft.com/.default"});
-
-        var requestAdapter = new OkHttpRequestAdapter(authProvider);
-        return new GraphServiceClient(requestAdapter);
+        return new GraphServiceClient(credential);
     }
 
     public Message getMessage(String userId, String messageId, String accessToken) {
@@ -38,6 +33,7 @@ public class MicrosoftGraphClient {
 
         return graphClient.users().byUserId(userId).messages().byMessageId(messageId)
                 .get(requestConfiguration -> {
+                    assert requestConfiguration.queryParameters != null;
                     requestConfiguration.queryParameters.select = new String[]{"subject", "body", "from"};
                 });
     }

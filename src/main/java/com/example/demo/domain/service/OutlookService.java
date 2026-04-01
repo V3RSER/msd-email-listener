@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,14 +38,14 @@ public class OutlookService implements ProcessNewEmailUseCase {
             return;
         }
 
-        logger.info("Successfully retrieved message with subject: '{}'", message.subject);
+        logger.info("Successfully retrieved message with subject: '{}'", message.getSubject());
 
         extractPurchaseInfo(message);
     }
 
     private void extractPurchaseInfo(Message message) {
-        String subject = message.subject;
-        String body = message.body.content;
+        String subject = message.getSubject();
+        String body = Objects.requireNonNull(message.getBody()).getContent();
 
         logger.info("--- EXTRACTING PURCHASE INFO ---");
         logger.info("Subject: {}", subject);

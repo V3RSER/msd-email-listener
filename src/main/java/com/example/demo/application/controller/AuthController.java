@@ -32,9 +32,9 @@ public class AuthController {
         User user = microsoftGraphClient.getUserFromGraph(accessToken);
 
         // Storing or updating the user connection details
-        UserConnection connection = userConnectionRepository.findByUserId(user.id)
+        UserConnection connection = userConnectionRepository.findByUserId(user.getId())
                 .orElse(new UserConnection());
-        connection.setUserId(user.id);
+        connection.setUserId(user.getId());
         connection.setAccessToken(accessToken);
         connection.setRefreshToken(authorizedClient.getRefreshToken().getTokenValue());
         userConnectionRepository.save(connection);
