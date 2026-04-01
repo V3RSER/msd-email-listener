@@ -21,9 +21,19 @@
       onCreate = {
         install = "mvn clean install";
       };
-      # Runs when a workspace is (re)started
-      onStart = {
-        run-server = "PORT=3000 mvn spring-boot:run";
+    };
+    # Enable previews and customize configuration
+    previews = {
+      enable = true;
+      previews = {
+        web = {
+          command = [
+            "mvn"
+            "spring-boot:run"
+            "-Dspring-boot.run.arguments=--server.port=$PORT"
+          ];
+          manager = "web";
+        };
       };
     };
   };
