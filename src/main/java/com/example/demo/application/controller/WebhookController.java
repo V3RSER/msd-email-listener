@@ -49,7 +49,7 @@ public class WebhookController {
                         String userId = contentJson.get("userAccount").get("id").asText();
                         String messageId = contentJson.get("item").get("id").asText();
 
-                        outlookService.processEmail(userId, messageId);
+                        outlookService.processNewEmail(userId, messageId);
                     }
                 }
             }

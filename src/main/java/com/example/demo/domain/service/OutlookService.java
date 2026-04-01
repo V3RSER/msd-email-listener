@@ -36,7 +36,7 @@ public class OutlookService implements ProcessNewEmailUseCase {
             return;
         }
 
-        logger.info("Successfully retrieved message with subject: '{}'", message.getSubject());
+        logger.info("Successfully retrieved message with subject: '{}'", message.subject);
 
         // --- Placeholder for your processing logic ---
         extractPurchaseInfo(message);
@@ -44,8 +44,8 @@ public class OutlookService implements ProcessNewEmailUseCase {
     }
 
     private void extractPurchaseInfo(Message message) {
-        String subject = message.getSubject();
-        String body = message.getBody().getContent();
+        String subject = message.subject;
+        String body = message.body.content;
 
         logger.info("--- EXTRACTING PURCHASE INFO ---");
         logger.info("Subject: {}", subject);

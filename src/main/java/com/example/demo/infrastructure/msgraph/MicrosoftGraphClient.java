@@ -32,7 +32,9 @@ public class MicrosoftGraphClient {
 
         var authProvider = new AzureIdentityAuthenticationProvider(credential, new String[]{"https://graph.microsoft.com/.default"});
 
-        return new GraphServiceClient<>(authProvider, null);
+        //todo: implementar authProvider
+        return GraphServiceClient.builder()
+                .buildClient();
     }
 
     public Message getMessage(String userId, String messageId, String accessToken) {
