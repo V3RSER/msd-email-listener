@@ -33,7 +33,7 @@ public class SecurityConfig {
         http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/api/v1/webhooks/outlook").permitAll()
+                .pathMatchers("/api/v1/webhooks/outlook", "/favicon.ico").permitAll()
                 .anyExchange().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
@@ -47,7 +47,7 @@ public class SecurityConfig {
     }
 
     private ServerAuthenticationSuccessHandler authenticationSuccessHandler() {
-        RedirectServerAuthenticationSuccessHandler redirectHandler = new RedirectServerAuthenticationSuccessHandler("/");
+        RedirectServerAuthenticationSuccessHandler redirectHandler = new RedirectServerAuthenticationSuccessHandler("/api/v1/auth/status");
 
         return (WebFilterExchange webFilterExchange, Authentication authentication) -> {
             if (authentication instanceof OAuth2AuthenticationToken oauth2Token) {
