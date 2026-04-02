@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 @Slf4j
 public class OutlookWebhookController {
 
-    // Fixed illegal escape character
     private static final Pattern USER_ID_PATTERN = Pattern.compile("users\\('([^']+)'.*");
 
     private final ProcessNewEmailUseCase processNewEmailUseCase;
@@ -31,33 +30,47 @@ public class OutlookWebhookController {
             @RequestParam(required = false) String validationToken) {
 
         if (validationToken != null && !validationToken.isEmpty()) {
-            log.info("Responding to Outlook validation request");
-            return Mono.just(ResponseEntity.ok().header("Content-Type", "text/plain").body(validationToken));
+            return handleValidationRequest(validationToken);
         }
 
+        return processNotifications(notification)
+                .then(Mono.just(ResponseEntity.accepted().build()))
+                .doOnSuccess(response -> log.info("Completed processing of all Outlook notifications."));
+    }
+
+    private Mono<ResponseEntity<Object>> handleValidationRequest(String validationToken) {
+        log.info("Responding to Outlook validation request with token");
+        return Mono.just(ResponseEntity.ok().header("Content-Type", "text/plain").body(validationToken));
+    }
+
+    private Mono<Void> processNotifications(OutlookNotification notification) {
         log.info("Received Outlook notification");
         if (notification == null || notification.getValue() == null || notification.getValue().isEmpty()) {
             log.warn("Outlook notification is null or has no value");
-            return Mono.just(ResponseEntity.accepted().build());
+            return Mono.empty();
         }
 
         return Flux.fromIterable(notification.getValue())
-                .doOnNext(value -> log.info("Processing notification value: {}", value))
-                .filter(v -> "created".equals(v.getChangeType()))
-                .doOnNext(v -> log.info("Filtered for 'created' change type"))
-                .flatMap(v -> {
-                    String messageId = v.getResourceData().getId();
-                    log.info("Processing message with ID: {}", messageId);
-                    return Mono.justOrEmpty(extractUserIdFromOdataId(v.getResourceData().getOdataId()))
-                            .doOnNext(userId -> log.info("Extracted user ID: {}", userId))
-                            .flatMap(userId -> processNewEmailUseCase.processNewEmail(userId, messageId))
-                            .doOnError(error -> log.error("Error processing message {}", messageId, error))
-                            .onErrorResume(e -> Mono.empty()) // Continue with next notifications
-                            .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Could not extract user ID from OData ID: {}", v.getResourceData().getOdataId())));
-                })
-                .then(Mono.just(ResponseEntity.accepted().build()))
                 .doOnSubscribe(subscription -> log.info("Subscribed to Outlook notification processing flow"))
-                .doOnSuccess(response -> log.info("Completed processing of all Outlook notifications"));
+                .flatMap(this::processSingleNotification)
+                .then();
+    }
+
+    private Mono<Void> processSingleNotification(OutlookNotification.Value value) {
+        if (!"created".equals(value.getChangeType())) {
+            log.debug("Skipping notification with change type: {}", value.getChangeType());
+            return Mono.empty();
+        }
+
+        String messageId = value.getResourceData().getId();
+        log.info("Processing 'created' notification for message ID: {}", messageId);
+
+        return Mono.justOrEmpty(extractUserIdFromOdataId(value.getResourceData().getOdataId()))
+                .flatMap(userId -> processNewEmailUseCase.processNewEmail(userId, messageId))
+                .doOnError(error -> log.error("Error processing message {}", messageId, error))
+                .onErrorResume(e -> Mono.empty()) // Continue with the next notification
+                .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Could not extract user ID for message: {}. OData ID: {}", messageId, value.getResourceData().getOdataId())))
+                .then();
     }
 
     private Optional<String> extractUserIdFromOdataId(String odataId) {
