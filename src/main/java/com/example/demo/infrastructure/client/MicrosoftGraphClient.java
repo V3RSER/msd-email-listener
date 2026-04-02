@@ -1,5 +1,6 @@
 package com.example.demo.infrastructure.client;
 
+import com.azure.identity.AzureAuthorityHosts;
 import com.azure.identity.OnBehalfOfCredentialBuilder;
 import com.microsoft.graph.models.ChangeType;
 import com.microsoft.graph.models.Message;
@@ -25,6 +26,7 @@ public class MicrosoftGraphClient {
 
     public GraphServiceClient getDelegateClient(String accessToken) {
         var credential = new OnBehalfOfCredentialBuilder()
+                .authorityHost(AzureAuthorityHosts.AZURE_PUBLIC_CLOUD)
                 .tenantId(tenantId)
                 .clientId(clientId)
                 .clientSecret(clientSecret)
