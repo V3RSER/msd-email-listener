@@ -32,9 +32,9 @@ public class OAuth2LoginSuccessService {
                     log.info("Creating email subscription for user: {}", userConnection.getUserId());
                     return outlookService.createEmailSubscription(userConnection.getUserId());
                 })
-                .then()
                 .doOnSuccess(aVoid -> log.info("Successfully processed authentication and created subscription for user: {}", authentication.getName()))
-                .doOnError(throwable -> log.error("Error during authentication success processing for user: {}", authentication.getName(), throwable));
+                .doOnError(throwable -> log.error("Error during authentication success processing for user: {}", authentication.getName(), throwable))
+                .then();
     }
 
     private Mono<UserConnection> saveUserConnection(OAuth2AuthorizedClient authorizedClient) {
