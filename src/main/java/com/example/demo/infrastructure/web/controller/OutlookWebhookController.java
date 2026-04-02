@@ -5,10 +5,12 @@ import com.example.demo.infrastructure.web.dto.OutlookNotification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -24,19 +26,31 @@ public class OutlookWebhookController {
 
     private final ProcessNewEmailUseCase processNewEmailUseCase;
 
-    @PostMapping("/outlook")
-    public Mono<ResponseEntity<Void>> handleOutlookNotification(
-            @Valid @RequestBody OutlookNotification notification) {
+    @PostMapping(value = "/outlook", produces = "text/plain")
+    public Mono<ResponseEntity<String>> handleOutlookWebhook(
+            @RequestBody(required = false) @Valid OutlookNotification notification,
+            @RequestParam(required = false) String validationToken) {
 
-        return processNotifications(notification)
-                .then(Mono.just(ResponseEntity.accepted().<Void>build()))
-                .doOnSuccess(response -> log.info("Completed processing of all Outlook notifications."));
-    }
+        if (validationToken != null) {
+            log.info("Responding to Outlook validation request with token");
+            return Mono.just(ResponseEntity.ok().body(validationToken));
+        }
 
-    @GetMapping("/outlook")
-    public Mono<ResponseEntity<String>> handleValidationRequest(@RequestParam String validationToken) {
-        log.info("Responding to Outlook validation request with token");
-        return Mono.just(ResponseEntity.ok().header("Content-Type", "text/plain").body(validationToken));
+        if (notification != null) {
+            log.info("Received Outlook notification, processing asynchronously.");
+            processNotifications(notification)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                            null, // onNext is not applicable for Mono<Void>
+                            error -> log.error("Error processing outlook notification", error),
+                            () -> log.info("Successfully processed outlook notification")
+                    );
+
+            return Mono.just(ResponseEntity.accepted().body(""));
+        }
+
+        log.warn("Received an empty request for Outlook webhook.");
+        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Request body is missing."));
     }
 
 
