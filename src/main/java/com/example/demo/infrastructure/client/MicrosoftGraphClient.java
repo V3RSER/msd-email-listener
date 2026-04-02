@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 
 @Component
 public class MicrosoftGraphClient {
@@ -62,7 +61,7 @@ public class MicrosoftGraphClient {
             subscription.setNotificationUrl(notificationUrl);
             subscription.setResource("users/" + userId + "/messages");
             // Expiration is max 3 days for this resource. Let's set it to 1 hour for development.
-            subscription.setExpirationDateTime(OffsetDateTime.now().plus(1, ChronoUnit.HOURS));
+            subscription.setExpirationDateTime(OffsetDateTime.now().plusHours(1));
             subscription.setClientState("SecretClientState"); // A secret state to validate notifications
 
             return graphClient.subscriptions().post(subscription);

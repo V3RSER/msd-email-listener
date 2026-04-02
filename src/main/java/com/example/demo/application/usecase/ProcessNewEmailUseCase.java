@@ -10,7 +10,7 @@ public interface ProcessNewEmailUseCase {
     /**
      * Executes the use case.
      *
-     * @param userId The ID of the user who received the email.
+     * @param userId    The ID of the user who received the email.
      * @param messageId The ID of the new email message.
      * @return A {@link Mono} that completes when the processing is finished.
      */

@@ -22,16 +22,16 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/api/v1/webhooks/outlook", "/favicon.ico").permitAll()
-                .anyExchange().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .authorizedClientService(customReactiveOAuth2AuthorizedClientService)
-                .authenticationSuccessHandler(authenticationSuccessHandler())
-            )
-            .logout(logout -> logout.logoutUrl("/logout"));
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/api/v1/webhooks/outlook", "/favicon.ico").permitAll()
+                        .anyExchange().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizedClientService(customReactiveOAuth2AuthorizedClientService)
+                        .authenticationSuccessHandler(authenticationSuccessHandler())
+                )
+                .logout(logout -> logout.logoutUrl("/logout"));
 
         return http.build();
     }
@@ -42,7 +42,7 @@ public class SecurityConfig {
         return (webFilterExchange, authentication) -> {
             if (authentication instanceof OAuth2AuthenticationToken) {
                 return oAuth2LoginSuccessService.onAuthenticationSuccess(webFilterExchange.getExchange(), (OAuth2AuthenticationToken) authentication)
-                    .then(redirectHandler.onAuthenticationSuccess(webFilterExchange, authentication));
+                        .then(redirectHandler.onAuthenticationSuccess(webFilterExchange, authentication));
             }
             return redirectHandler.onAuthenticationSuccess(webFilterExchange, authentication);
         };

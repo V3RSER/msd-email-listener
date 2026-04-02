@@ -8,8 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 @Repository
 @RequiredArgsConstructor
 public class UserConnectionRepositoryImpl implements UserConnectionRepository {

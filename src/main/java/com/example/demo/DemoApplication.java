@@ -1,4 +1,3 @@
-
 package com.example.demo;
 
 import org.flywaydb.core.Flyway;
