@@ -6,21 +6,19 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-@Table("user_connections")
+@Table("purchases")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserConnectionEntity {
-
+public class PurchaseEntity {
     @Id
     private UUID id;
     private String userId;
-    private String accessToken;
-    private String refreshToken;
-    private OffsetDateTime accessTokenIssuedAt;
-    private OffsetDateTime accessTokenExpiresAt;
-
+    private String messageId;
+    private BigDecimal totalAmount;
+    private OffsetDateTime purchaseDate;
 }
