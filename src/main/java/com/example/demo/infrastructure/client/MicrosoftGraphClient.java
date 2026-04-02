@@ -1,13 +1,18 @@
 package com.example.demo.infrastructure.client;
 
 import com.azure.identity.OnBehalfOfCredentialBuilder;
+import com.microsoft.graph.models.ChangeType;
 import com.microsoft.graph.models.Message;
+import com.microsoft.graph.models.Subscription;
 import com.microsoft.graph.models.User;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Component
 public class MicrosoftGraphClient {
@@ -45,6 +50,22 @@ public class MicrosoftGraphClient {
         return Mono.fromCallable(() -> {
             GraphServiceClient graphClient = getDelegateClient(accessToken);
             return graphClient.me().get();
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<Subscription> createSubscription(String userId, String notificationUrl, String accessToken) {
+        return Mono.fromCallable(() -> {
+            GraphServiceClient graphClient = getDelegateClient(accessToken);
+
+            Subscription subscription = new Subscription();
+            subscription.setChangeType(ChangeType.CREATED.toString());
+            subscription.setNotificationUrl(notificationUrl);
+            subscription.setResource("users/" + userId + "/mailFolders('inbox')/messages");
+            // Expiration is max 3 days for this resource. Let's set it to 1 hour for development.
+            subscription.setExpirationDateTime(OffsetDateTime.now().plus(1, ChronoUnit.HOURS));
+            subscription.setClientState("SecretClientState"); // A secret state to validate notifications
+
+            return graphClient.subscriptions().post(subscription);
         }).subscribeOn(Schedulers.boundedElastic());
     }
 }
