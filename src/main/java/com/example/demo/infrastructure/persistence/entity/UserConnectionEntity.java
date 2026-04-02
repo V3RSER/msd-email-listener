@@ -1,28 +1,36 @@
 package com.example.demo.infrastructure.persistence.entity;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Table("user_connections")
 public class UserConnectionEntity {
 
     @Id
     private UUID id;
 
-    @Column("user_id")
-    private String userId;
+    private String provider;
 
-    @Column("access_token")
+    private String providerId;
+
+    private String email;
+
     private String accessToken;
 
-    @Column("refresh_token")
     private String refreshToken;
 
-    @Column("token_expiration")
-    private OffsetDateTime tokenExpiration;
+    private LocalDateTime expiresIn;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

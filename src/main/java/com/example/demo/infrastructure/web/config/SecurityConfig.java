@@ -6,16 +6,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationSuccessHandler;
+import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.WebFilterExchange;
 import org.springframework.security.core.Authentication;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 @Configuration
@@ -23,54 +27,75 @@ import java.time.ZoneId;
 public class SecurityConfig {
 
     private final UserConnectionRepository userConnectionRepository;
+    private final ServerOAuth2AuthorizedClientRepository authorizedClientRepository;
 
-    public SecurityConfig(UserConnectionRepository userConnectionRepository) {
+    public SecurityConfig(UserConnectionRepository userConnectionRepository, ServerOAuth2AuthorizedClientRepository authorizedClientRepository) {
         this.userConnectionRepository = userConnectionRepository;
+        this.authorizedClientRepository = authorizedClientRepository;
     }
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/api/v1/webhooks/outlook").permitAll()
-                .anyExchange().authenticated()
-            )
-            .oauth2Login(oauth2 -> oauth2
-                .authenticationSuccessHandler(authenticationSuccessHandler())
-            )
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-            );
-
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/api/v1/webhooks/**", "/favicon.ico").permitAll()
+                        .anyExchange().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authenticationSuccessHandler(authenticationSuccessHandler())
+                )
+                .csrf(ServerHttpSecurity.CsrfSpec::disable); // Not recommended for production
         return http.build();
     }
 
-    private ServerAuthenticationSuccessHandler authenticationSuccessHandler() {
-        RedirectServerAuthenticationSuccessHandler redirectHandler = new RedirectServerAuthenticationSuccessHandler("/");
+    @Bean
+    public ServerAuthenticationSuccessHandler authenticationSuccessHandler() {
+        return new RedirectServerAuthenticationSuccessHandler() {
+            @Override
+            public Mono<Void> onAuthenticationSuccess(WebFilterExchange webFilterExchange, Authentication authentication) {
+                if (authentication instanceof OAuth2AuthenticationToken) {
+                    OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+                    String clientRegistrationId = oauthToken.getAuthorizedClientRegistrationId();
 
-        return (WebFilterExchange webFilterExchange, Authentication authentication) -> {
-            if (authentication instanceof OAuth2AuthenticationToken oauth2Token) {
-                OAuth2User user = oauth2Token.getPrincipal();
+                    return authorizedClientRepository.loadAuthorizedClient(clientRegistrationId, authentication, webFilterExchange.getExchange())
+                        .flatMap(authorizedClient -> {
+                            OAuth2User user = oauthToken.getPrincipal();
+                            String providerId = user.getName();
+                            String email = user.getAttribute("email");
+                            OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+                            OAuth2RefreshToken refreshToken = authorizedClient.getRefreshToken();
 
-                // Note: The logic here should be updated to properly retrieve access and refresh tokens
-                // from the reactive OAuth2AuthorizedClientService if needed.
-                // Right now it just demonstrates saving dummy data as it did before.
-                
-                return userConnectionRepository.findByUserId(user.getName())
-                    .defaultIfEmpty(new UserConnection())
-                    .flatMap(userConnection -> {
-                        userConnection.setUserId(user.getName());
-                        userConnection.setAccessToken("dummy-access-token");
-                        userConnection.setRefreshToken("dummy-refresh-token");
-                        userConnection.setTokenExpiration(Instant.now().plusSeconds(3600).atZone(ZoneId.systemDefault()).toOffsetDateTime());
-                        
-                        return userConnectionRepository.save(userConnection);
-                    })
-                    .then(redirectHandler.onAuthenticationSuccess(webFilterExchange, authentication));
+                            return userConnectionRepository.findByProviderAndProviderId(clientRegistrationId, providerId)
+                                .flatMap(existingConnection -> {
+                                    // User exists, update tokens
+                                    existingConnection.setAccessToken(accessToken.getTokenValue());
+                                    if (refreshToken != null) {
+                                        existingConnection.setRefreshToken(refreshToken.getTokenValue());
+                                    }
+                                    existingConnection.setExpiresIn(accessToken.getExpiresAt() != null ? LocalDateTime.ofInstant(accessToken.getExpiresAt(), ZoneId.systemDefault()) : null);
+                                    existingConnection.setUpdatedAt(LocalDateTime.now());
+                                    return userConnectionRepository.save(existingConnection);
+                                })
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    // New user, create connection
+                                    UserConnection newUserConnection = new UserConnection(
+                                            null, // id is auto-generated
+                                            clientRegistrationId,
+                                            providerId,
+                                            email,
+                                            accessToken.getTokenValue(),
+                                            refreshToken != null ? refreshToken.getTokenValue() : null,
+                                            accessToken.getExpiresAt() != null ? LocalDateTime.ofInstant(accessToken.getExpiresAt(), ZoneId.systemDefault()) : null,
+                                            LocalDateTime.now(),
+                                            LocalDateTime.now()
+                                    );
+                                    return userConnectionRepository.save(newUserConnection);
+                                }))
+                                .then(super.onAuthenticationSuccess(webFilterExchange, authentication));
+                        });
+                }
+                return super.onAuthenticationSuccess(webFilterExchange, authentication);
             }
-            
-            return redirectHandler.onAuthenticationSuccess(webFilterExchange, authentication);
         };
     }
 }
