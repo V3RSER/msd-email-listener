@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.server.AuthenticatedPrincipalServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
@@ -15,9 +17,11 @@ import org.springframework.security.web.server.authentication.ServerAuthenticati
 public class SecurityConfig {
 
     private final OAuth2LoginSuccessService oAuth2LoginSuccessService;
+    private final CustomOAuth2AuthorizedClientService customOAuth2AuthorizedClientService;
 
-    public SecurityConfig(OAuth2LoginSuccessService oAuth2LoginSuccessService) {
+    public SecurityConfig(OAuth2LoginSuccessService oAuth2LoginSuccessService, CustomOAuth2AuthorizedClientService customOAuth2AuthorizedClientService) {
         this.oAuth2LoginSuccessService = oAuth2LoginSuccessService;
+        this.customOAuth2AuthorizedClientService = customOAuth2AuthorizedClientService;
     }
 
     @Bean
@@ -29,6 +33,7 @@ public class SecurityConfig {
                 .anyExchange().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
+                .authorizedClientService(customOAuth2AuthorizedClientService)
                 .authenticationSuccessHandler(authenticationSuccessHandler())
             )
             .logout(logout -> logout.logoutUrl("/logout"));
