@@ -1,6 +1,8 @@
 package com.example.demo.application.controller;
 
+import com.example.demo.application.controller.dto.AuthStatusResponse;
 import com.example.demo.domain.repository.UserConnectionRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -20,13 +22,18 @@ public class AuthController {
     }
 
     @GetMapping("/status")
-    public Mono<ResponseEntity<String>> getStatus(@AuthenticationPrincipal OAuth2User oauth2User) {
+    public Mono<ResponseEntity<AuthStatusResponse>> getStatus(@AuthenticationPrincipal OAuth2User oauth2User) {
         if (oauth2User == null) {
-            return Mono.just(ResponseEntity.status(401).body("Not authenticated"));
+            AuthStatusResponse response = new AuthStatusResponse(null, false, "Not authenticated");
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response));
         }
 
-        return userConnectionRepository.findByUserId(oauth2User.getName())
-                .map(userConnection -> ResponseEntity.ok("User " + userConnection.getUserId() + " is connected to Outlook."))
-                .defaultIfEmpty(ResponseEntity.status(404).body("User " + oauth2User.getName() + " is not connected to Outlook."));
+        String userId = oauth2User.getName();
+        return userConnectionRepository.findByUserId(userId)
+                .map(userConnection -> {
+                    AuthStatusResponse response = new AuthStatusResponse(userId, true, "User is connected to Outlook.");
+                    return ResponseEntity.ok(response);
+                })
+                .defaultIfEmpty(ResponseEntity.ok(new AuthStatusResponse(userId, false, "User is not connected to Outlook.")));
     }
 }
