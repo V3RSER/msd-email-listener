@@ -6,6 +6,8 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface UserConnectionMapper {
-    UserConnection toDomain(UserConnectionEntity entity);
-    UserConnectionEntity toEntity(UserConnection domain);
+
+    UserConnectionEntity toEntity(UserConnection model);
+
+    UserConnection toModel(UserConnectionEntity entity);
 }
