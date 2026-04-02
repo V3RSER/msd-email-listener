@@ -1,6 +1,7 @@
 package com.example.demo.domain.service;
 
 import com.example.demo.application.usecase.ProcessNewEmailUseCase;
+import com.example.demo.domain.exception.UserConnectionNotFoundException;
 import com.example.demo.domain.repository.UserConnectionRepository;
 import com.example.demo.infrastructure.msgraph.MicrosoftGraphClient;
 import com.microsoft.graph.models.Message;
@@ -8,9 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 public class OutlookService implements ProcessNewEmailUseCase {
@@ -18,10 +18,15 @@ public class OutlookService implements ProcessNewEmailUseCase {
     private static final Logger logger = LoggerFactory.getLogger(OutlookService.class);
     private final MicrosoftGraphClient graphClient;
     private final UserConnectionRepository userConnectionRepository;
+    private final EmailPurchaseExtractor emailPurchaseExtractor;
 
-    public OutlookService(MicrosoftGraphClient graphClient, UserConnectionRepository userConnectionRepository) {
+    public OutlookService(
+            MicrosoftGraphClient graphClient,
+            UserConnectionRepository userConnectionRepository,
+            EmailPurchaseExtractor emailPurchaseExtractor) {
         this.graphClient = graphClient;
         this.userConnectionRepository = userConnectionRepository;
+        this.emailPurchaseExtractor = emailPurchaseExtractor;
     }
 
     @Override
@@ -29,7 +34,7 @@ public class OutlookService implements ProcessNewEmailUseCase {
         logger.info("Processing email for user '{}' and message '{}'", userId, messageId);
 
         var userConnection = userConnectionRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("User connection not found for user: " + userId));
+                .orElseThrow(() -> new UserConnectionNotFoundException(userId));
 
         Message message = graphClient.getMessage(userId, messageId, userConnection.getAccessToken());
 
@@ -40,24 +45,11 @@ public class OutlookService implements ProcessNewEmailUseCase {
 
         logger.info("Successfully retrieved message with subject: '{}'", message.getSubject());
 
-        extractPurchaseInfo(message);
-    }
+        Optional<BigDecimal> totalAmount = emailPurchaseExtractor.extractTotalAmount(message);
 
-    private void extractPurchaseInfo(Message message) {
-        String subject = message.getSubject();
-        String body = Objects.requireNonNull(message.getBody()).getContent();
-
-        logger.info("--- EXTRACTING PURCHASE INFO ---");
-        logger.info("Subject: {}", subject);
-
-        Pattern pattern = Pattern.compile("Total: \\$(\\d+\\.\\d{2})");
-        Matcher matcher = pattern.matcher(body);
-
-        if (matcher.find()) {
-            String totalAmount = matcher.group(1);
-            logger.info("Total amount found: {}", totalAmount);
-        }
-
-        logger.info("--- EXTRACTION COMPLETE ---");
+        totalAmount.ifPresentOrElse(
+            amount -> logger.info("Extracted total amount: {}", amount),
+            () -> logger.info("No total amount found in the email.")
+        );
     }
 }

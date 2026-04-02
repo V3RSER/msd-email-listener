@@ -3,12 +3,22 @@ package com.example.demo.infrastructure.web.controller;
 import com.example.demo.application.usecase.ProcessNewEmailUseCase;
 import com.example.demo.infrastructure.web.dto.OutlookNotification;
 import com.example.demo.infrastructure.web.dto.OutlookValidationResponse;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/webhooks")
 public class OutlookWebhookController {
+
+    private static final Logger log = LoggerFactory.getLogger(OutlookWebhookController.class);
+    private static final Pattern USER_ID_PATTERN = Pattern.compile("users\(\'([^\']+)\'\)");
 
     private final ProcessNewEmailUseCase processNewEmailUseCase;
 
@@ -18,23 +28,26 @@ public class OutlookWebhookController {
 
     @PostMapping("/outlook")
     public ResponseEntity<OutlookValidationResponse> handleOutlookNotification(
-            @RequestBody OutlookNotification notification,
+            @Valid @RequestBody OutlookNotification notification,
             @RequestParam(required = false) String validationToken) {
 
-        // 1. Microsoft Graph Webhook validation
         if (validationToken != null && !validationToken.isEmpty()) {
+            log.info("Responding to Outlook validation request");
             return ResponseEntity.ok(new OutlookValidationResponse(validationToken));
         }
 
-        // 2. Process the actual notification
+        log.info("Received Outlook notification");
         if (notification != null && notification.getValue() != null) {
             notification.getValue().forEach(v -> {
                 if ("created".equals(v.getChangeType())) {
                     String messageId = v.getResourceData().getId();
-                    String userId = extractUserIdFromOdataId(v.getResourceData().getOdataId());
-                    if (userId != null) {
-                        processNewEmailUseCase.processNewEmail(userId, messageId);
-                    }
+                    extractUserIdFromOdataId(v.getResourceData().getOdataId()).ifPresentOrElse(
+                        userId -> {
+                            log.info("Processing new email for user {} and message {}", userId, messageId);
+                            processNewEmailUseCase.processNewEmail(userId, messageId);
+                        },
+                        () -> log.warn("Could not extract user ID from OData ID: {}", v.getResourceData().getOdataId())
+                    );
                 }
             });
         }
@@ -42,15 +55,14 @@ public class OutlookWebhookController {
         return ResponseEntity.accepted().build();
     }
 
-    private String extractUserIdFromOdataId(String odataId) {
+    private Optional<String> extractUserIdFromOdataId(String odataId) {
         if (odataId == null || odataId.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
-        // e.g., "users('d2a67972-656c-4b53-83d3-9914b807755c')/messages('...')"
-        String[] parts = odataId.split("'");
-        if (parts.length > 1) {
-            return parts[1];
+        Matcher matcher = USER_ID_PATTERN.matcher(odataId);
+        if (matcher.find()) {
+            return Optional.of(matcher.group(1));
         }
-        return null;
+        return Optional.empty();
     }
 }
