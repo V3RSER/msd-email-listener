@@ -21,13 +21,13 @@ import java.util.regex.Pattern;
 public class OutlookWebhookController {
 
     // Fixed illegal escape character
-    private static final Pattern USER_ID_PATTERN = Pattern.compile("users\\('([^']+)'\\)");
+    private static final Pattern USER_ID_PATTERN = Pattern.compile("users\\('([^']+)'.*");
 
     private final ProcessNewEmailUseCase processNewEmailUseCase;
 
     @PostMapping("/outlook")
     public Mono<ResponseEntity<Object>> handleOutlookNotification(
-            @Valid @RequestBody OutlookNotification notification,
+            @Valid @RequestBody(required = false) OutlookNotification notification,
             @RequestParam(required = false) String validationToken) {
 
         if (validationToken != null && !validationToken.isEmpty()) {
@@ -36,33 +36,43 @@ public class OutlookWebhookController {
         }
 
         log.info("Received Outlook notification");
-
-        if (notification == null || notification.getValue() == null) {
+        if (notification == null || notification.getValue() == null || notification.getValue().isEmpty()) {
+            log.warn("Outlook notification is null or has no value");
             return Mono.just(ResponseEntity.accepted().build());
         }
 
         return Flux.fromIterable(notification.getValue())
+                .doOnNext(value -> log.info("Processing notification value: {}", value))
                 .filter(v -> "created".equals(v.getChangeType()))
+                .doOnNext(v -> log.info("Filtered for 'created' change type"))
                 .flatMap(v -> {
                     String messageId = v.getResourceData().getId();
+                    log.info("Processing message with ID: {}", messageId);
                     return Mono.justOrEmpty(extractUserIdFromOdataId(v.getResourceData().getOdataId()))
-                            .doOnNext(userId -> log.info("Processing new email for user {} and message {}", userId, messageId))
+                            .doOnNext(userId -> log.info("Extracted user ID: {}", userId))
                             .flatMap(userId -> processNewEmailUseCase.processNewEmail(userId, messageId))
-                            .doOnError(error -> log.error("Failed to process message {}", messageId, error))
-                            .onErrorResume(e -> Mono.empty()) // Don't fail the whole batch if one fails
+                            .doOnError(error -> log.error("Error processing message {}", messageId, error))
+                            .onErrorResume(e -> Mono.empty()) // Continue with next notifications
                             .switchIfEmpty(Mono.fromRunnable(() -> log.warn("Could not extract user ID from OData ID: {}", v.getResourceData().getOdataId())));
                 })
-                .then(Mono.just(ResponseEntity.accepted().build()));
+                .then(Mono.just(ResponseEntity.accepted().build()))
+                .doOnSubscribe(subscription -> log.info("Subscribed to Outlook notification processing flow"))
+                .doOnSuccess(response -> log.info("Completed processing of all Outlook notifications"));
     }
 
     private Optional<String> extractUserIdFromOdataId(String odataId) {
         if (odataId == null || odataId.isEmpty()) {
+            log.warn("OData ID is null or empty.");
             return Optional.empty();
         }
+        log.debug("Attempting to extract user ID from OData ID: {}", odataId);
         Matcher matcher = USER_ID_PATTERN.matcher(odataId);
         if (matcher.find()) {
-            return Optional.of(matcher.group(1));
+            String userId = matcher.group(1);
+            log.info("Successfully extracted user ID '{}' from OData ID", userId);
+            return Optional.of(userId);
         }
+        log.warn("Could not find user ID in OData ID using the configured pattern.");
         return Optional.empty();
     }
 }

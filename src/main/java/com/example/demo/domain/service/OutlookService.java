@@ -23,25 +23,41 @@ public class OutlookService {
     private String notificationUrl;
 
     public Mono<Message> getEmailContent(String userId, String messageId) {
-        log.info("Processing email for user '{}' and message '{}'", userId, messageId);
+        log.info("Attempting to retrieve email content for user '{}' and message '{}'", userId, messageId);
 
         return userConnectionRepository.findByUserId(userId)
+                .doOnNext(userConnection -> log.debug("Found user connection for user ID: {}", userId))
                 .switchIfEmpty(Mono.error(new UserConnectionNotFoundException(userId)))
-                .flatMap(userConnection -> graphClient.getMessage(userId, messageId, userConnection.getAccessToken()))
+                .flatMap(userConnection -> {
+                    log.debug("User access token acquired. Requesting message from Microsoft Graph API.");
+                    return graphClient.getMessage(userId, messageId, userConnection.getAccessToken());
+                })
                 .doOnSuccess(message -> {
                     if (message != null) {
                         log.info("Successfully retrieved message with subject: '{}'", message.getSubject());
                     } else {
-                        log.error("Could not retrieve message '{}' for user '{}'", messageId, userId);
+                        log.warn("Retrieved a null message for messageId '{}' and userId '{}'", messageId, userId);
                     }
-                });
+                })
+                .doOnError(error -> log.error("Failed to retrieve message '{}' for user '{}'", messageId, userId, error));
     }
 
     public Mono<Subscription> createEmailSubscription(String userId) {
-        log.info("Creating email subscription for user '{}'", userId);
+        log.info("Attempting to create email subscription for user '{}'", userId);
         return userConnectionRepository.findByUserId(userId)
+                .doOnNext(userConnection -> log.debug("Found user connection for user ID: {}", userId))
                 .switchIfEmpty(Mono.error(new UserConnectionNotFoundException(userId)))
-                .flatMap(userConnection -> graphClient.createSubscription(userId, notificationUrl, userConnection.getAccessToken()))
-                .doOnSuccess(subscription -> log.info("Successfully created subscription '{}' for user '{}'", subscription.getId(), userId));
+                .flatMap(userConnection -> {
+                    log.debug("User access token acquired. Requesting subscription creation from Microsoft Graph API.");
+                    return graphClient.createSubscription(userId, notificationUrl, userConnection.getAccessToken());
+                })
+                .doOnSuccess(subscription -> {
+                    if (subscription != null) {
+                        log.info("Successfully created subscription '{}' for user '{}'. Expires: {}", subscription.getId(), userId, subscription.getExpirationDateTime());
+                    } else {
+                        log.warn("Created a null subscription for user '{}'", userId);
+                    }
+                })
+                .doOnError(error -> log.error("Failed to create subscription for user '{}'", userId, error));
     }
 }

@@ -18,9 +18,15 @@ public class ProcessNewEmailService implements ProcessNewEmailUseCase {
 
     @Override
     public Mono<Void> processNewEmail(String userId, String messageId) {
+        log.info("Processing new email for user: {} and message: {}", userId, messageId);
         return outlookService.getEmailContent(userId, messageId)
+                .doOnSuccess(message -> log.info("Successfully retrieved email content for message: {}", messageId))
+                .doOnError(error -> log.error("Error retrieving email content for message: {}", messageId, error))
                 .flatMap(emailPurchaseExtractor::extractTotalAmount)
-                .doOnNext(totalAmount -> log.info("Extracted total amount: {}", totalAmount))
-                .then();
+                .doOnNext(totalAmount -> log.info("Extracted total amount: {} for message: {}", totalAmount, messageId))
+                .doOnError(error -> log.error("Error extracting total amount for message: {}", messageId, error))
+                .then()
+                .doOnSuccess(aVoid -> log.info("Successfully processed email: {}", messageId))
+                .doOnError(error -> log.error("Error processing email: {}", messageId, error));
     }
 }
