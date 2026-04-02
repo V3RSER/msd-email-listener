@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.stereotype.Service;
@@ -27,8 +26,8 @@ public class CustomReactiveOAuth2AuthorizedClientService implements ReactiveOAut
                             OAuth2AccessToken accessToken = new OAuth2AccessToken(
                                     OAuth2AccessToken.TokenType.BEARER,
                                     user.getAccessToken(),
-                                    user.getAccessTokenIssuedAt(),
-                                    user.getAccessTokenExpiresAt()
+                                    user.getAccessTokenIssuedAt().toInstant(),
+                                    user.getAccessTokenExpiresAt().toInstant()
                             );
                             return (T) new OAuth2AuthorizedClient(clientRegistration, principalName, accessToken);
                         }));
