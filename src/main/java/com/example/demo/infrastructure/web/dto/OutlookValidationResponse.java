@@ -1,8 +1,8 @@
 package com.example.demo.infrastructure.web.dto;
 
-import lombok.Data;
+import lombok.Value;
 
-@Data
+@Value
 public class OutlookValidationResponse {
-    private final String validationToken;
+    String validationToken;
 }

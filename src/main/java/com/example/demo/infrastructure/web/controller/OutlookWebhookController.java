@@ -2,14 +2,13 @@ package com.example.demo.infrastructure.web.controller;
 
 import com.example.demo.application.usecase.ProcessNewEmailUseCase;
 import com.example.demo.infrastructure.web.dto.OutlookNotification;
-import com.example.demo.infrastructure.web.dto.OutlookValidationResponse;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -17,17 +16,14 @@ import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/webhooks")
+@RequiredArgsConstructor
+@Slf4j
 public class OutlookWebhookController {
 
-    private static final Logger log = LoggerFactory.getLogger(OutlookWebhookController.class);
     // Fixed illegal escape character
     private static final Pattern USER_ID_PATTERN = Pattern.compile("users\\('([^']+)'\\)");
 
     private final ProcessNewEmailUseCase processNewEmailUseCase;
-
-    public OutlookWebhookController(ProcessNewEmailUseCase processNewEmailUseCase) {
-        this.processNewEmailUseCase = processNewEmailUseCase;
-    }
 
     @PostMapping("/outlook")
     public Mono<ResponseEntity<Object>> handleOutlookNotification(
@@ -40,7 +36,7 @@ public class OutlookWebhookController {
         }
 
         log.info("Received Outlook notification");
-        
+
         if (notification == null || notification.getValue() == null) {
             return Mono.just(ResponseEntity.accepted().build());
         }

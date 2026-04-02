@@ -3,6 +3,7 @@ package com.example.demo.application.service;
 import com.example.demo.domain.model.UserConnection;
 import com.example.demo.domain.repository.UserConnectionRepository;
 import com.example.demo.domain.service.OutlookService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
@@ -13,19 +14,12 @@ import reactor.core.publisher.Mono;
 import java.time.ZoneOffset;
 
 @Service
+@RequiredArgsConstructor
 public class OAuth2LoginSuccessService {
 
     private final UserConnectionRepository userConnectionRepository;
     private final ServerOAuth2AuthorizedClientRepository authorizedClientRepository;
     private final OutlookService outlookService;
-
-    public OAuth2LoginSuccessService(UserConnectionRepository userConnectionRepository,
-                                       ServerOAuth2AuthorizedClientRepository authorizedClientRepository,
-                                       OutlookService outlookService) {
-        this.userConnectionRepository = userConnectionRepository;
-        this.authorizedClientRepository = authorizedClientRepository;
-        this.outlookService = outlookService;
-    }
 
     public Mono<Void> onAuthenticationSuccess(ServerWebExchange exchange, OAuth2AuthenticationToken authentication) {
         return authorizedClientRepository.loadAuthorizedClient(authentication.getAuthorizedClientRegistrationId(), authentication, exchange)

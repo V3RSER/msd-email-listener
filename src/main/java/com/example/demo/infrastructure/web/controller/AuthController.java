@@ -1,7 +1,8 @@
 package com.example.demo.infrastructure.web.controller;
 
-import com.example.demo.infrastructure.web.dto.AuthStatusResponse;
 import com.example.demo.domain.repository.UserConnectionRepository;
+import com.example.demo.infrastructure.web.dto.AuthStatusResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,13 +14,10 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final UserConnectionRepository userConnectionRepository;
-
-    public AuthController(UserConnectionRepository userConnectionRepository) {
-        this.userConnectionRepository = userConnectionRepository;
-    }
 
     @GetMapping("/status")
     public Mono<ResponseEntity<AuthStatusResponse>> getStatus(@AuthenticationPrincipal OAuth2User oauth2User) {

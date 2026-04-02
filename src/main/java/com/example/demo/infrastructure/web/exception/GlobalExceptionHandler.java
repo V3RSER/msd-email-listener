@@ -1,8 +1,7 @@
 package com.example.demo.infrastructure.web.exception;
 
 import com.example.demo.domain.exception.UserConnectionNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -13,13 +12,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @ControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(UserConnectionNotFoundException.class)
     public ResponseEntity<Object> handleUserConnectionNotFoundException(UserConnectionNotFoundException ex) {
-        logger.warn("UserConnectionNotFoundException: {}", ex.getMessage());
+        log.warn("UserConnectionNotFoundException: {}", ex.getMessage());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
@@ -32,7 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllExceptions(Exception ex) {
-        logger.error("An unexpected error occurred", ex);
+        log.error("An unexpected error occurred", ex);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
