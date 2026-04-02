@@ -45,9 +45,8 @@ public class OAuth2LoginSuccessService {
         log.info("Saving user connection for user: {}", userId);
 
         return userConnectionRepository.findByUserId(userId)
-                .defaultIfEmpty(new UserConnection())
+                .defaultIfEmpty(new UserConnection(userId))
                 .flatMap(userConnection -> {
-                    userConnection.setUserId(userId);
                     userConnection.setAccessToken(accessTokenValue);
                     userConnection.setRefreshToken(refreshTokenValue);
                     userConnection.setAccessTokenIssuedAt(issuedAt);
