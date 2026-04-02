@@ -2,11 +2,13 @@ package com.example.demo.infrastructure.persistence.repository;
 
 import com.example.demo.domain.model.UserConnection;
 import com.example.demo.domain.repository.UserConnectionRepository;
-import com.example.demo.infrastructure.persistence.r2dbc.UserConnectionR2dbcRepository;
 import com.example.demo.infrastructure.persistence.mapper.UserConnectionMapper;
+import com.example.demo.infrastructure.persistence.r2dbc.UserConnectionR2dbcRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
