@@ -23,6 +23,9 @@ public class UserConnectionEntity {
     @Column("refresh_token")
     private String refreshToken;
 
-    @Column("token_expiration")
-    private OffsetDateTime tokenExpiration;
+    @Column("access_token_issued_at")
+    private OffsetDateTime accessTokenIssuedAt;
+
+    @Column("access_token_expires_at")
+    private OffsetDateTime accessTokenExpiresAt;
 }
