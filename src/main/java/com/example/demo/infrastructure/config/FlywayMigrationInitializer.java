@@ -1,5 +1,5 @@
 
-package com.example.demo.config;
+package com.example.demo.infrastructure.config;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;

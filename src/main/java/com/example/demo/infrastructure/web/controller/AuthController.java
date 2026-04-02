@@ -1,6 +1,6 @@
-package com.example.demo.application.controller;
+package com.example.demo.infrastructure.web.controller;
 
-import com.example.demo.application.controller.dto.AuthStatusResponse;
+import com.example.demo.infrastructure.web.dto.AuthStatusResponse;
 import com.example.demo.domain.repository.UserConnectionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -2,7 +2,7 @@ package com.example.demo.domain.service;
 
 import com.example.demo.domain.exception.UserConnectionNotFoundException;
 import com.example.demo.domain.repository.UserConnectionRepository;
-import com.example.demo.infrastructure.msgraph.MicrosoftGraphClient;
+import com.example.demo.infrastructure.client.MicrosoftGraphClient;
 import com.microsoft.graph.models.Message;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

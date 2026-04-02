@@ -1,4 +1,4 @@
-package com.example.demo.infrastructure.msgraph;
+package com.example.demo.infrastructure.client;
 
 import com.azure.identity.OnBehalfOfCredentialBuilder;
 import com.microsoft.graph.models.Message;
