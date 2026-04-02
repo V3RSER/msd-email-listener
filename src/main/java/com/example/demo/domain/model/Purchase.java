@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
@@ -18,5 +18,5 @@ public class Purchase {
     private String userId;
     private String messageId;
     private BigDecimal totalAmount;
-    private Instant purchaseDate;
+    private OffsetDateTime purchaseDate;
 }

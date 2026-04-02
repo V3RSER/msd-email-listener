@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,21 +26,21 @@ public class ProcessNewEmailService implements ProcessNewEmailUseCase {
         return outlookService.getEmailContent(userId, messageId)
                 .doOnSuccess(message -> log.info("Successfully retrieved email content for message: {}", messageId))
                 .doOnError(error -> log.error("Error retrieving email content for message: {}", messageId, error))
-                .flatMap(this::extractAndSavePurchase)
+                .flatMap(message -> extractAndSavePurchase(message, userId))
                 .doOnError(error -> log.error("Error extracting and saving purchase for message: {}", messageId, error))
                 .then()
                 .doOnSuccess(aVoid -> log.info("Successfully processed email: {}", messageId))
                 .doOnError(error -> log.error("Error processing email: {}", messageId, error));
     }
 
-    private Mono<Void> extractAndSavePurchase(Message message) {
+    private Mono<Void> extractAndSavePurchase(Message message, String userId) {
         return emailPurchaseExtractor.extractTotalAmount(message)
                 .flatMap(totalAmount -> {
                     Purchase purchase = Purchase.builder()
-                            .userId(message.getToRecipients().getFirst().getEmailAddress().getAddress())
+                            .userId(userId)
                             .messageId(message.getId())
                             .totalAmount(totalAmount)
-                            .purchaseDate(message.getSentDateTime().toInstant())
+                            .purchaseDate(message.getSentDateTime())
                             .build();
 
                     log.info("Saving purchase: {}", purchase);

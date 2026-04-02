@@ -13,6 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Service
 @RequiredArgsConstructor
@@ -49,8 +50,8 @@ public class OAuth2LoginSuccessService {
                 .flatMap(userConnection -> {
                     userConnection.setAccessToken(accessTokenValue);
                     userConnection.setRefreshToken(refreshTokenValue);
-                    userConnection.setAccessTokenIssuedAt(issuedAt);
-                    userConnection.setAccessTokenExpiresAt(expiresAt);
+                    userConnection.setAccessTokenIssuedAt(issuedAt.atOffset(ZoneOffset.UTC));
+                    userConnection.setAccessTokenExpiresAt(expiresAt.atOffset(ZoneOffset.UTC));
                     return userConnectionRepository.save(userConnection)
                             .doOnSuccess(savedUserConnection -> log.info("Successfully saved user connection for user: {}", userId));
                 });

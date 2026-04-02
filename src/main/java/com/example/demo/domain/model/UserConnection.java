@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
@@ -15,8 +15,8 @@ public class UserConnection {
     private String userId;
     private String accessToken;
     private String refreshToken;
-    private Instant accessTokenIssuedAt;
-    private Instant accessTokenExpiresAt;
+    private OffsetDateTime accessTokenIssuedAt;
+    private OffsetDateTime accessTokenExpiresAt;
 
     public UserConnection(String userId) {
         this.userId = userId;
