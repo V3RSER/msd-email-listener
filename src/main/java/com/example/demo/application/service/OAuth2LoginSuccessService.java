@@ -27,6 +27,7 @@ public class OAuth2LoginSuccessService {
     public Mono<Void> onAuthenticationSuccess(ServerWebExchange exchange, OAuth2AuthenticationToken authentication) {
         log.info("Authentication successful for user: {}", authentication.getName());
         return authorizedClientRepository.loadAuthorizedClient(authentication.getAuthorizedClientRegistrationId(), authentication, exchange)
+                .switchIfEmpty(Mono.error(new IllegalStateException("No authorized client found")))
                 .flatMap(this::saveUserConnection)
                 .flatMap(userConnection -> {
                     log.info("Creating email subscription for user: {}", userConnection.getUserId());
