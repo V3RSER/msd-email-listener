@@ -25,23 +25,20 @@ public class OutlookWebhookController {
     private final ProcessNewEmailUseCase processNewEmailUseCase;
 
     @PostMapping("/outlook")
-    public Mono<ResponseEntity<Object>> handleOutlookNotification(
-            @Valid @RequestBody(required = false) OutlookNotification notification,
-            @RequestParam(required = false) String validationToken) {
-
-        if (validationToken != null && !validationToken.isEmpty()) {
-            return handleValidationRequest(validationToken);
-        }
+    public Mono<ResponseEntity<Void>> handleOutlookNotification(
+            @Valid @RequestBody OutlookNotification notification) {
 
         return processNotifications(notification)
-                .then(Mono.just(ResponseEntity.accepted().build()))
+                .then(Mono.just(ResponseEntity.accepted().<Void>build()))
                 .doOnSuccess(response -> log.info("Completed processing of all Outlook notifications."));
     }
 
-    private Mono<ResponseEntity<Object>> handleValidationRequest(String validationToken) {
+    @GetMapping("/outlook")
+    public Mono<ResponseEntity<String>> handleValidationRequest(@RequestParam String validationToken) {
         log.info("Responding to Outlook validation request with token");
         return Mono.just(ResponseEntity.ok().header("Content-Type", "text/plain").body(validationToken));
     }
+
 
     private Mono<Void> processNotifications(OutlookNotification notification) {
         log.info("Received Outlook notification");
