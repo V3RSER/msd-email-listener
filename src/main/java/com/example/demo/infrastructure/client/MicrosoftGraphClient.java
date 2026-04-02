@@ -58,7 +58,7 @@ public class MicrosoftGraphClient {
             GraphServiceClient graphClient = getDelegateClient(accessToken);
 
             Subscription subscription = new Subscription();
-            subscription.setChangeType(ChangeType.CREATED.toString());
+            subscription.setChangeType(ChangeType.Created.value);
             subscription.setNotificationUrl(notificationUrl);
             subscription.setResource("users/" + userId + "/mailFolders('inbox')/messages");
             // Expiration is max 3 days for this resource. Let's set it to 1 hour for development.
