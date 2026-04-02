@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.ZoneOffset;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -30,18 +30,19 @@ public class OAuth2LoginSuccessService {
 
     private Mono<UserConnection> saveUserConnection(OAuth2AuthorizedClient authorizedClient) {
         String userId = authorizedClient.getPrincipalName();
-        String accessToken = authorizedClient.getAccessToken().getTokenValue();
-        String refreshToken = authorizedClient.getRefreshToken() != null ? authorizedClient.getRefreshToken().getTokenValue() : null;
-        var tokenExpiration = authorizedClient.getAccessToken().getExpiresAt() != null ?
-                authorizedClient.getAccessToken().getExpiresAt().atOffset(ZoneOffset.UTC) : null;
+        String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
+        String refreshTokenValue = authorizedClient.getRefreshToken() != null ? authorizedClient.getRefreshToken().getTokenValue() : null;
+        Instant issuedAt = authorizedClient.getAccessToken().getIssuedAt();
+        Instant expiresAt = authorizedClient.getAccessToken().getExpiresAt();
 
         return userConnectionRepository.findByUserId(userId)
                 .defaultIfEmpty(new UserConnection())
                 .flatMap(userConnection -> {
                     userConnection.setUserId(userId);
-                    userConnection.setAccessToken(accessToken);
-                    userConnection.setRefreshToken(refreshToken);
-                    userConnection.setTokenExpiration(tokenExpiration);
+                    userConnection.setAccessToken(accessTokenValue);
+                    userConnection.setRefreshToken(refreshTokenValue);
+                    userConnection.setAccessTokenIssuedAt(issuedAt);
+                    userConnection.setAccessTokenExpiresAt(expiresAt);
                     return userConnectionRepository.save(userConnection);
                 });
     }

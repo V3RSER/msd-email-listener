@@ -1,7 +1,9 @@
 package com.example.demo.domain.model;
 
-import java.util.UUID;
 import lombok.Data;
+
+import java.time.Instant;
+import java.util.UUID;
 
 @Data
 public class UserConnection {
@@ -9,5 +11,6 @@ public class UserConnection {
     private String userId;
     private String accessToken;
     private String refreshToken;
-    private java.time.OffsetDateTime tokenExpiration;
+    private Instant accessTokenIssuedAt;
+    private Instant accessTokenExpiresAt;
 }
