@@ -12,7 +12,7 @@ import org.springframework.data.relational.core.mapping.Table;
 public class UserConnectionEntity {
 
     @Id
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     @Column("user_id")
     private String userId;
