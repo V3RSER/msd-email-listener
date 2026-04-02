@@ -2,30 +2,29 @@ package com.example.demo.infrastructure.persistence.repository;
 
 import com.example.demo.domain.model.UserConnection;
 import com.example.demo.domain.repository.UserConnectionRepository;
-import com.example.demo.infrastructure.persistence.entity.UserConnectionEntity;
-import com.example.demo.infrastructure.persistence.jpa.UserConnectionJpaRepository;
+import com.example.demo.infrastructure.persistence.r2dbc.UserConnectionR2dbcRepository;
 import com.example.demo.infrastructure.persistence.mapper.UserConnectionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @Repository
 @RequiredArgsConstructor
 public class UserConnectionRepositoryImpl implements UserConnectionRepository {
 
-    private final UserConnectionJpaRepository jpaRepository;
+    private final UserConnectionR2dbcRepository r2dbcRepository;
     private final UserConnectionMapper mapper;
 
     @Override
-    public Optional<UserConnection> findByUserId(String userId) {
-        return jpaRepository.findByUserId(userId).map(mapper::toModel);
+    public Mono<UserConnection> findByUserId(String userId) {
+        return r2dbcRepository.findByUserId(userId).map(mapper::toModel);
     }
 
     @Override
-    public UserConnection save(UserConnection userConnection) {
-        UserConnectionEntity entity = mapper.toEntity(userConnection);
-        UserConnectionEntity savedEntity = jpaRepository.save(entity);
-        return mapper.toModel(savedEntity);
+    public Mono<UserConnection> save(UserConnection userConnection) {
+        return Mono.just(userConnection)
+                .map(mapper::toEntity)
+                .flatMap(r2dbcRepository::save)
+                .map(mapper::toModel);
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -22,23 +23,22 @@ public class AuthController {
     private final MicrosoftGraphClient microsoftGraphClient;
 
     @GetMapping("/me")
-    public User getCurrentUser(
+    public Mono<User> getCurrentUser(
             @RegisteredOAuth2AuthorizedClient("azure") OAuth2AuthorizedClient authorizedClient,
             @AuthenticationPrincipal OAuth2User oauth2User) {
 
         String accessToken = authorizedClient.getAccessToken().getTokenValue();
-        String principalName = oauth2User.getName(); // This is the user's principal name
+        String refreshToken = authorizedClient.getRefreshToken() != null ? authorizedClient.getRefreshToken().getTokenValue() : null;
 
-        User user = microsoftGraphClient.getUserFromGraph(accessToken);
-
-        // Storing or updating the user connection details
-        UserConnection connection = userConnectionRepository.findByUserId(user.getId())
-                .orElse(new UserConnection());
-        connection.setUserId(user.getId());
-        connection.setAccessToken(accessToken);
-        connection.setRefreshToken(authorizedClient.getRefreshToken().getTokenValue());
-        userConnectionRepository.save(connection);
-
-        return user;
+        return microsoftGraphClient.getUserFromGraph(accessToken)
+                .flatMap(user -> userConnectionRepository.findByUserId(user.getId())
+                        .defaultIfEmpty(new UserConnection())
+                        .flatMap(connection -> {
+                            connection.setUserId(user.getId());
+                            connection.setAccessToken(accessToken);
+                            connection.setRefreshToken(refreshToken);
+                            return userConnectionRepository.save(connection);
+                        })
+                        .thenReturn(user));
     }
 }

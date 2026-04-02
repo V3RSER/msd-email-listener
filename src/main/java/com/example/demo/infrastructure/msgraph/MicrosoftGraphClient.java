@@ -6,6 +6,8 @@ import com.microsoft.graph.models.User;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Component
 public class MicrosoftGraphClient {
@@ -28,18 +30,21 @@ public class MicrosoftGraphClient {
         return new GraphServiceClient(credential);
     }
 
-    public Message getMessage(String userId, String messageId, String accessToken) {
-        GraphServiceClient graphClient = getDelegateClient(accessToken);
-
-        return graphClient.users().byUserId(userId).messages().byMessageId(messageId)
-                .get(requestConfiguration -> {
-                    assert requestConfiguration.queryParameters != null;
-                    requestConfiguration.queryParameters.select = new String[]{"subject", "body", "from"};
-                });
+    public Mono<Message> getMessage(String userId, String messageId, String accessToken) {
+        return Mono.fromCallable(() -> {
+            GraphServiceClient graphClient = getDelegateClient(accessToken);
+            return graphClient.users().byUserId(userId).messages().byMessageId(messageId)
+                    .get(requestConfiguration -> {
+                        assert requestConfiguration.queryParameters != null;
+                        requestConfiguration.queryParameters.select = new String[]{"subject", "body", "from"};
+                    });
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    public User getUserFromGraph(String accessToken) {
-        GraphServiceClient graphClient = getDelegateClient(accessToken);
-        return graphClient.me().get();
+    public Mono<User> getUserFromGraph(String accessToken) {
+        return Mono.fromCallable(() -> {
+            GraphServiceClient graphClient = getDelegateClient(accessToken);
+            return graphClient.me().get();
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 }

@@ -1,9 +1,9 @@
 package com.example.demo.domain.repository;
 
 import com.example.demo.domain.model.UserConnection;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 public interface UserConnectionRepository {
-    Optional<UserConnection> findByUserId(String userId);
-    UserConnection save(UserConnection userConnection);
+    Mono<UserConnection> findByUserId(String userId);
+    Mono<UserConnection> save(UserConnection userConnection);
 }

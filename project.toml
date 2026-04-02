@@ -3,7 +3,7 @@ name = "email-listener"
 version = "0.1.0"
 
 [run]
-command = "mvn spring-boot:run"
+command = "bash -c 'export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java)))) && mvn spring-boot:run'"
 
 [env]
 AZURE_CLIENT_ID = ""
