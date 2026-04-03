@@ -1,7 +1,8 @@
 package com.example.demo.infrastructure.client;
 
-import com.azure.identity.AzureAuthorityHosts;
-import com.azure.identity.OnBehalfOfCredentialBuilder;
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
 import com.microsoft.graph.models.ChangeType;
 import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.Subscription;
@@ -24,21 +25,20 @@ public class MicrosoftGraphClient {
     @Value("${spring.security.oauth2.client.registration.azure.client-secret}")
     private String clientSecret;
 
-    public GraphServiceClient getDelegateClient(String accessToken) {
-        var credential = new OnBehalfOfCredentialBuilder()
-                .authorityHost(AzureAuthorityHosts.AZURE_PUBLIC_CLOUD)
-                .tenantId(tenantId)
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .userAssertion(accessToken)
-                .build();
+    public GraphServiceClient getAuthenticatedClient(String accessToken) {
+        TokenCredential credential = new TokenCredential() {
+            @Override
+            public Mono<AccessToken> getToken(TokenRequestContext tokenRequestContext) {
+                return Mono.just(new AccessToken(accessToken, OffsetDateTime.MAX));
+            }
+        };
 
         return new GraphServiceClient(credential);
     }
 
     public Mono<Message> getMessage(String userId, String messageId, String accessToken) {
         return Mono.fromCallable(() -> {
-            GraphServiceClient graphClient = getDelegateClient(accessToken);
+            GraphServiceClient graphClient = getAuthenticatedClient(accessToken);
             return graphClient.users().byUserId(userId).messages().byMessageId(messageId)
                     .get(requestConfiguration -> {
                         assert requestConfiguration.queryParameters != null;
@@ -49,14 +49,14 @@ public class MicrosoftGraphClient {
 
     public Mono<User> getUserFromGraph(String accessToken) {
         return Mono.fromCallable(() -> {
-            GraphServiceClient graphClient = getDelegateClient(accessToken);
+            GraphServiceClient graphClient = getAuthenticatedClient(accessToken);
             return graphClient.me().get();
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
     public Mono<Subscription> createSubscription(String userId, String notificationUrl, String accessToken) {
         return Mono.fromCallable(() -> {
-            GraphServiceClient graphClient = getDelegateClient(accessToken);
+            GraphServiceClient graphClient = getAuthenticatedClient(accessToken);
 
             Subscription subscription = new Subscription();
             subscription.setChangeType(ChangeType.Created.value);
