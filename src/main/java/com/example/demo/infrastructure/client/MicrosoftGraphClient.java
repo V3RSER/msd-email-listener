@@ -8,7 +8,6 @@ import com.microsoft.graph.models.Message;
 import com.microsoft.graph.models.Subscription;
 import com.microsoft.graph.models.User;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -17,13 +16,6 @@ import java.time.OffsetDateTime;
 
 @Component
 public class MicrosoftGraphClient {
-
-    @Value("${spring.security.oauth2.client.provider.azure.tenant-id}")
-    private String tenantId;
-    @Value("${spring.security.oauth2.client.registration.azure.client-id}")
-    private String clientId;
-    @Value("${spring.security.oauth2.client.registration.azure.client-secret}")
-    private String clientSecret;
 
     public GraphServiceClient getAuthenticatedClient(String accessToken) {
         TokenCredential credential = new TokenCredential() {
